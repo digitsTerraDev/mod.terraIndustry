@@ -21,18 +21,28 @@ public class RefineryPortMenu extends AbstractContainerMenu {
     private int modifierActivationTicks;
     private int activeModifier;
     private int activeModifierTicks;
+    private int portSlotCount;
+    private final @Nullable RefineryOperatingRate configuredRate;
 
     public RefineryPortMenu(int id, Inventory inventory, RegistryFriendlyByteBuf buffer) {
-        this(id, inventory, findPort(inventory.player, buffer.readBlockPos()), RefineryPortType.values()[buffer.readVarInt()]);
+        this(id, inventory, readOpeningData(inventory.player, buffer));
+    }
+
+    private RefineryPortMenu(int id, Inventory inventory, OpeningData openingData) {
+        this(id, inventory, openingData.port(), openingData.type(), openingData.hasItemInventory(), openingData.rate());
     }
 
     public RefineryPortMenu(int id, Inventory inventory, @Nullable RefineryPortBlockEntity port, RefineryPortType type) {
+        this(id, inventory, port, type, port != null && port.hasItemInventory(), port == null ? null : port.operatingRate());
+    }
+
+    private RefineryPortMenu(int id, Inventory inventory, @Nullable RefineryPortBlockEntity port, RefineryPortType type,
+                             boolean hasItemInventory, @Nullable RefineryOperatingRate configuredRate) {
         super(ModMenus.REFINERY_PORT.get(), id);
         this.port = port;
         this.type = type;
-        RefineryResource expectedResource = expectedResource();
-        if (port != null && (type == RefineryPortType.MODIFIER
-                || expectedResource != null && expectedResource.kind() == RefineryResource.Kind.ITEM)) {
+        this.configuredRate = configuredRate;
+        if (port != null && hasItemInventory) {
             addPortSlots(port);
         }
         addFluidDataSlots();
@@ -47,20 +57,21 @@ public class RefineryPortMenu extends AbstractContainerMenu {
                     return super.mayPlace(stack);
                 }
             });
+            portSlotCount = 1;
             return;
         }
-        boolean acceptsItems = type == RefineryPortType.FUEL || type == RefineryPortType.MODIFIER;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {
                 int slotIndex = column + row * 3;
                 addSlot(new SlotItemHandler(port.itemStorage(), slotIndex, 62 + column * 18, 58 + row * 18) {
                     @Override
                     public boolean mayPlace(net.minecraft.world.item.ItemStack stack) {
-                        return acceptsItems;
+                        return super.mayPlace(stack);
                     }
                 });
             }
         }
+        portSlotCount = 9;
     }
 
     private void addFluidDataSlots() {
@@ -139,18 +150,34 @@ public class RefineryPortMenu extends AbstractContainerMenu {
     }
 
     public @Nullable RefineryOperatingRate operatingRate() {
-        if (type != RefineryPortType.FUEL) {
-            return null;
-        }
-        return RefineryDefinitions.defaultId().flatMap(RefineryDefinitions::find)
-                .map(RefineryDefinition::fuel)
-                .orElse(null);
+        return configuredRate;
     }
 
     public @Nullable RefineryResource expectedResource() {
         RefineryOperatingRate rate = operatingRate();
         return rate == null ? null : rate.resource();
     }
+
+    private static OpeningData readOpeningData(Player player, RegistryFriendlyByteBuf buffer) {
+        RefineryPortBlockEntity port = findPort(player, buffer.readBlockPos());
+        RefineryPortType type = RefineryPortType.values()[buffer.readVarInt()];
+        boolean hasItemInventory = buffer.readBoolean();
+        RefineryOperatingRate rate = null;
+        if (buffer.readBoolean()) {
+            RefineryResource.Kind kind = RefineryResource.Kind.values()[buffer.readVarInt()];
+            String id = buffer.readUtf();
+            int amount = buffer.readVarInt();
+            int intervalTicks = buffer.readVarInt();
+            RefineryResource resource = kind == RefineryResource.Kind.ENERGY
+                    ? RefineryResource.energy(amount)
+                    : new RefineryResource(kind, net.minecraft.resources.ResourceLocation.parse(id), amount);
+            rate = RefineryOperatingRate.everyTicks(resource, intervalTicks);
+        }
+        return new OpeningData(port, type, hasItemInventory, rate);
+    }
+
+    private record OpeningData(@Nullable RefineryPortBlockEntity port, RefineryPortType type, boolean hasItemInventory,
+                               @Nullable RefineryOperatingRate rate) { }
 
     private void addPlayerInventory(Inventory inventory) {
         for (int row = 0; row < 3; row++) {
@@ -171,6 +198,30 @@ public class RefineryPortMenu extends AbstractContainerMenu {
 
     @Override
     public net.minecraft.world.item.ItemStack quickMoveStack(Player player, int index) {
-        return net.minecraft.world.item.ItemStack.EMPTY;
+        if (index < 0 || index >= slots.size()) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+
+        net.minecraft.world.inventory.Slot source = slots.get(index);
+        if (!source.hasItem()) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+
+        net.minecraft.world.item.ItemStack stack = source.getItem();
+        net.minecraft.world.item.ItemStack original = stack.copy();
+        if (index < portSlotCount) {
+            if (!moveItemStackTo(stack, portSlotCount, slots.size(), true)) {
+                return net.minecraft.world.item.ItemStack.EMPTY;
+            }
+        } else if (portSlotCount == 0 || !moveItemStackTo(stack, 0, portSlotCount, false)) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+
+        if (stack.isEmpty()) {
+            source.set(net.minecraft.world.item.ItemStack.EMPTY);
+        } else {
+            source.setChanged();
+        }
+        return original;
     }
 }

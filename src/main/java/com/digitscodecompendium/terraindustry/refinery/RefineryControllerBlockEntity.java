@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalTime;
@@ -186,6 +187,15 @@ public class RefineryControllerBlockEntity extends BlockEntity {
     }
     public List<RefineryPortBlockEntity> ports() {
         return ports;
+    }
+
+    /** Returns the resource accepted by ports of this role, or {@code null} when none is configured. */
+    public @Nullable RefineryOperatingRate operatingRate(RefineryPortType portType) {
+        return RefineryDefinitions.find(definitionId).map(definition -> switch (portType) {
+            case FUEL -> definition.fuel();
+            case COOLANT -> definition.coolant();
+            case MODIFIER -> null;
+        }).orElse(null);
     }
 
     public RefineryModifierType activeModifier() {

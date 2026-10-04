@@ -78,6 +78,16 @@ public class RefineryPortBlock extends BaseEntityBlock {
                     buffer -> {
                         buffer.writeBlockPos(pos);
                         buffer.writeVarInt(portType.ordinal());
+                        buffer.writeBoolean(port.hasItemInventory());
+                        var rate = port.operatingRate();
+                        buffer.writeBoolean(rate != null);
+                        if (rate != null) {
+                            var resource = rate.resource();
+                            buffer.writeVarInt(resource.kind().ordinal());
+                            buffer.writeUtf(resource.id() == null ? "" : resource.id().toString());
+                            buffer.writeVarInt(resource.amount());
+                            buffer.writeVarInt(rate.intervalTicks());
+                        }
                     });
         }
         return InteractionResult.SUCCESS;

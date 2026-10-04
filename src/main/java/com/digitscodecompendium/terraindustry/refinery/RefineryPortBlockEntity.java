@@ -4,6 +4,7 @@ import com.digitscodecompendium.terraindustry.ModBlockEntities;
 import com.digitscodecompendium.terraindustry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +32,12 @@ public class RefineryPortBlockEntity extends BlockEntity {
     private RefineryModifierType activeModifier = RefineryModifierType.NONE;
     private int activeModifierTicksRemaining;
     private final FluidTank fluid = new FluidTank(FLUID_CAPACITY) {
+        @Override public boolean isFluidValid(net.neoforged.neoforge.fluids.FluidStack stack) {
+            RefineryResource expected = expectedResource();
+            return expected != null && expected.kind() == RefineryResource.Kind.FLUID
+                    && stack.getFluid() == BuiltInRegistries.FLUID.get(expected.id());
+        }
+
         @Override protected void onContentsChanged() { refineryContentsChanged(); }
     };
     private final EnergyStorage energy = new EnergyStorage(ENERGY_CAPACITY, ENERGY_CAPACITY, ENERGY_CAPACITY) {
@@ -58,8 +65,12 @@ public class RefineryPortBlockEntity extends BlockEntity {
             }
 
             @Override public boolean isItemValid(int slot, ItemStack stack) {
-                return portType() != RefineryPortType.MODIFIER
-                        || activeModifier == RefineryModifierType.NONE && ModBlocks.isModifierItem(stack);
+                if (portType() == RefineryPortType.MODIFIER) {
+                    return activeModifier == RefineryModifierType.NONE && ModBlocks.isModifierItem(stack);
+                }
+                RefineryResource expected = expectedResource();
+                return expected != null && expected.kind() == RefineryResource.Kind.ITEM
+                        && stack.is(BuiltInRegistries.ITEM.get(expected.id()));
             }
 
             @Override public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
@@ -72,11 +83,8 @@ public class RefineryPortBlockEntity extends BlockEntity {
                         if (isItemValid(slot, stack)) stacks.set(slot, stack);
                     }
                 }
-                for (int slot = 0; slot < stacks.size(); slot++) {
-                    if (!stacks.get(slot).isEmpty() && !isItemValid(slot, stacks.get(slot))) {
-                        stacks.set(slot, ItemStack.EMPTY);
-                    }
-                }
+                // Resource filters are controller-dependent and may be unavailable while chunks load.
+                // Keep previously stored items so a definition change never destroys player inventory.
             }
         };
     }
@@ -90,6 +98,25 @@ public class RefineryPortBlockEntity extends BlockEntity {
             case FUEL -> energy;
             default -> null;
         };
+    }
+
+    public @Nullable RefineryOperatingRate operatingRate() {
+        if (level == null || controllerPos == null
+                || !(level.getBlockEntity(controllerPos) instanceof RefineryControllerBlockEntity controller)) {
+            return null;
+        }
+        return controller.operatingRate(portType());
+    }
+
+    public @Nullable RefineryResource expectedResource() {
+        RefineryOperatingRate rate = operatingRate();
+        return rate == null ? null : rate.resource();
+    }
+
+    /** Whether this port needs visible item slots for its current controller configuration. */
+    public boolean hasItemInventory() {
+        return portType() == RefineryPortType.MODIFIER
+                || expectedResource() != null && expectedResource().kind() == RefineryResource.Kind.ITEM;
     }
 
     public RefineryModifierType activeModifier() { return activeModifier; }
