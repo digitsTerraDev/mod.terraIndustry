@@ -23,8 +23,12 @@ show a 16,000 mB gauge, the required/produced fluid, and the currently stored fl
 ## KubeJS refinery registration
 
 The mod does not require KubeJS, but KubeJS can call its public Java bridge during a
-startup script. This example delays a refinery until the stated UTC instant, then runs
-twice each UTC day:
+startup script. The fluent interface needs one import only; it delays a refinery until the
+stated UTC instant, then runs twice each UTC day:
+
+A fully commented, copy-ready script is included at
+[`examples/kubejs/startup_scripts/terraindustry_refineries.js`](examples/kubejs/startup_scripts/terraindustry_refineries.js).
+Copy it into a modpack's `kubejs/startup_scripts` directory and replace the example ids.
 
 ```js
 // kubejs/startup_scripts/terraindustry_refineries.js
@@ -32,38 +36,21 @@ const RefineryDefinitions = Java.loadClass(
   'com.digitscodecompendium.terraindustry.refinery.RefineryDefinitions'
 )
 
-const RefineryResource = Java.loadClass(
-  'com.digitscodecompendium.terraindustry.refinery.RefineryResource'
-)
-const CatalystTransformationRecipe = Java.loadClass(
-  'com.digitscodecompendium.terraindustry.refinery.CatalystTransformationRecipe'
-)
-const CatalystOutcome = Java.loadClass(
-  'com.digitscodecompendium.terraindustry.refinery.CatalystTransformationRecipe$Outcome'
-)
-const CatalystCrystallizationRecipe = Java.loadClass(
-  'com.digitscodecompendium.terraindustry.refinery.CatalystCrystallizationRecipe'
-)
-const RefineryOperatingRate = Java.loadClass(
-  'com.digitscodecompendium.terraindustry.refinery.RefineryOperatingRate'
-)
-
-RefineryDefinitions.register(
-  'terraindustry:basic_crude',
-  '2026-09-01T00:00:00Z',
-  ['06:00-10:00', '18:30-23:00'],
-  20, // cycle length in ticks
-  [new CatalystTransformationRecipe('minecraft:stone', new CatalystOutcome('minecraft:iron_ore', 0.10))],
-  RefineryOperatingRate.everyTicks(RefineryResource.item('minecraft:coal', 1), 20),
-  null, // optional coolant profile, reserved for coolant mechanics
-  [new CatalystCrystallizationRecipe('minecraft:iron_ore', 'minecraft:amethyst_cluster', 0.10)]
-)
-RefineryDefinitions.setDefault('terraindustry:basic_crude')
+RefineryDefinitions.refinery('terraindustry:basic_crude')
+  .startsAt('2026-09-01T00:00:00Z')
+  .activeBetween('06:00-10:00')
+  .activeBetween('18:30-23:00')
+  .cycleTicks(20)
+  .fuelItem('minecraft:coal', 1, 20)
+  .transform('minecraft:stone', 'minecraft:iron_ore', 0.10)
+  .crystallize('minecraft:iron_ore', 'minecraft:amethyst_cluster', 0.10)
+  .registerAsDefault()
 ```
 
-Use `null` for no delayed start. A schedule of `00:00-00:00` is active all day. Windows
-such as `22:00-02:00` cross midnight. `setDefault` selects the recipe used by unconfigured
-controllers. A refinery definition contains one or more catalyst-transformation recipes. At
+Omit `startsAt` for no delayed start. With no `activeBetween` calls, the refinery is active
+all day; `00:00-00:00` also means all day. Windows such as `22:00-02:00` cross midnight.
+Use `registerAsDefault()` to select the recipe used by unconfigured controllers. Call
+`transform` more than once with the same input to add weighted outputs. A refinery definition contains one or more catalyst-transformation recipes. At
 the end of a fueled, scheduled cycle, each Catalyst Block finds one nearby matching input block
 for each recipe and rolls the listed output chances. Fuel is an operating property of the
 refinery definition, not a transformation recipe input.
