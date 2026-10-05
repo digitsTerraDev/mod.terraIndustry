@@ -285,8 +285,7 @@ public class RefineryControllerBlockEntity extends BlockEntity {
 
         BlockState previousState = level.getBlockState(target);
         playReplacementEffects(level, target, previousState);
-        Block outputBlock = BuiltInRegistries.BLOCK.get(outcome.outputBlock());
-        level.setBlock(target, outputBlock.defaultBlockState(), Block.UPDATE_ALL);
+        level.setBlock(target, outcome.outputBlock().createState(), Block.UPDATE_ALL);
     }
 
     private CatalystTransformationRecipe.Outcome chooseOutcome(CatalystTransformationRecipe recipe, double roll,
@@ -315,7 +314,7 @@ public class RefineryControllerBlockEntity extends BlockEntity {
                 for (CatalystTransformationRecipe.Outcome outcome : recipe.outputs()) {
                     for (BlockPos target : findNearbyInputs(level, catalyst, outcome.outputBlock())) {
                         if (transformed.add(target) && level.random.nextDouble() <= outcome.chance()) {
-                            replaceBlock(level, target, BuiltInRegistries.BLOCK.get(recipe.inputBlock()));
+                            replaceBlock(level, target, recipe.inputBlock().createState());
                         }
                     }
                 }
@@ -323,15 +322,14 @@ public class RefineryControllerBlockEntity extends BlockEntity {
         }
     }
 
-    private void replaceBlock(ServerLevel level, BlockPos target, Block outputBlock) {
+    private void replaceBlock(ServerLevel level, BlockPos target, BlockState outputState) {
         BlockState previousState = level.getBlockState(target);
         playReplacementEffects(level, target, previousState);
-        level.setBlock(target, outputBlock.defaultBlockState(), Block.UPDATE_ALL);
+        level.setBlock(target, outputState, Block.UPDATE_ALL);
     }
 
-    private boolean matchesInput(ServerLevel level, BlockPos target, ResourceLocation inputBlock) {
-        Block block = level.getBlockState(target).getBlock();
-        return BuiltInRegistries.BLOCK.getKey(block).equals(inputBlock);
+    private boolean matchesInput(ServerLevel level, BlockPos target, BlockStateSpec inputBlock) {
+        return inputBlock.matches(level.getBlockState(target));
     }
 
     private void playReplacementEffects(ServerLevel level, BlockPos target, BlockState previousState) {
@@ -365,7 +363,7 @@ public class RefineryControllerBlockEntity extends BlockEntity {
         level.setBlock(placement, crystal, Block.UPDATE_ALL);
     }
 
-    private List<BlockPos> findNearbyInputs(ServerLevel level, BlockPos catalyst, ResourceLocation input) {
+    private List<BlockPos> findNearbyInputs(ServerLevel level, BlockPos catalyst, BlockStateSpec input) {
         List<BlockPos> matches = new ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(
                 catalyst.offset(-CATALYST_RANGE, -CATALYST_RANGE, -CATALYST_RANGE),

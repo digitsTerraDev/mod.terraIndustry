@@ -59,6 +59,10 @@ the end of a fueled, scheduled cycle, each Catalyst Block finds one nearby match
 for each recipe and rolls the listed output chances. Fuel is an operating property of the
 refinery definition, not a transformation recipe input.
 
+Transformation inputs and outputs can include exact block states. For example,
+`transform('terra:dense_byzantium_ore[rock=granite]', 'tfc:ore/rich_cassiterite/granite', 1.0)`
+only converts the granite variant. State properties in an output are applied to the placed block.
+
 Crystallization recipes select a matching block type and a crystal block. On a successful roll, a
 crystallization recipe places its crystal on one random exposed face of the selected block. Vanilla
 amethyst clusters are supported out of the box.
