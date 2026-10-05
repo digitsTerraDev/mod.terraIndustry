@@ -44,12 +44,16 @@ RefineryDefinitions.refinery('terraindustry:basic_crude')
   .fuelItem('minecraft:coal', 1, 20)
   .transform('minecraft:stone', 'minecraft:iron_ore', 0.10)
   .crystallize('minecraft:iron_ore', 'minecraft:amethyst_cluster', 0.10)
-  .registerAsDefault()
+  .register()
 ```
 
 Omit `startsAt` for no delayed start. With no `activeBetween` calls, the refinery is active
 all day; `00:00-00:00` also means all day. Windows such as `22:00-02:00` cross midnight.
-Use `registerAsDefault()` to select the recipe used by unconfigured controllers. Call
+Every `register()` call adds a distinct controller block and item, bound permanently to that
+definition. The controller's block id is `terraindustry:<definition-path>`; use
+`.controller('my_controller_path')` to choose a different path. This lets a pack register, for
+example, both `yourmod:iron_refining` and `yourmod:copper_refining` without their conversion
+steps being combined. Call
 `transform` more than once with the same input to add weighted outputs. A refinery definition contains one or more catalyst-transformation recipes. At
 the end of a fueled, scheduled cycle, each Catalyst Block finds one nearby matching input block
 for each recipe and rolls the listed output chances. Fuel is an operating property of the

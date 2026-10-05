@@ -40,10 +40,8 @@ public class RefineryControllerBlockEntity extends BlockEntity {
     private static final int CATALYST_RANGE = 4;
     private static final double CRYSTALLIZATION_CONVERSION_MULTIPLIER = 0.5D;
     private static final double CRYSTALLIZATION_CHANCE_MULTIPLIER = 2.0D;
-    private static final ResourceLocation LEGACY_BASIC_IRON_ID = ResourceLocation.fromNamespaceAndPath("terraindustry", "basic_iron");
-    private static final ResourceLocation UNCONFIGURED_ID = ResourceLocation.fromNamespaceAndPath("terraindustry", "unconfigured");
-
-    private ResourceLocation definitionId = UNCONFIGURED_ID;
+    /** Immutable binding supplied by this controller's registered block. */
+    private final ResourceLocation definitionId;
     private List<RefineryPortBlockEntity> ports = List.of();
     private List<BlockPos> catalysts = List.of();
     /** Unique targets discovered from all catalyst ranges; rebuilt when the refinery refreshes. */
@@ -55,13 +53,13 @@ public class RefineryControllerBlockEntity extends BlockEntity {
 
     public RefineryControllerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.REFINERY_CONTROLLER.get(), pos, state);
-        if (state.getBlock() instanceof RefineryControllerBlock controller && controller.definitionId() != null) {
-            definitionId = controller.definitionId();
+        if (!(state.getBlock() instanceof RefineryControllerBlock controller) || controller.definitionId() == null) {
+            throw new IllegalStateException("Refinery controllers must be created from a bound controller block");
         }
+        definitionId = controller.definitionId();
     }
 
     public static void serverTick(ServerLevel level, BlockPos pos, BlockState state, RefineryControllerBlockEntity controller) {
-        controller.updateDefinitionId();
         if (level.getGameTime() % DISCOVERY_INTERVAL_TICKS == 0) {
             controller.discoverComponents(level);
         }
@@ -71,16 +69,6 @@ public class RefineryControllerBlockEntity extends BlockEntity {
                 .filter(definition -> definition.isScheduledNow(Instant.now()))
                 .map(definition -> controller.runCycleTick(level, definition))
                 .orElse(false);
-    }
-
-    private void updateDefinitionId() {
-        if (definitionId.equals(LEGACY_BASIC_IRON_ID)) {
-            setDefinitionId(ResourceLocation.parse(BuiltinRefineries.IRON_REFINERY));
-            return;
-        }
-        if (definitionId.equals(UNCONFIGURED_ID)) {
-            RefineryDefinitions.defaultId().ifPresent(this::setDefinitionId);
-        }
     }
 
     private void discoverComponents(ServerLevel level) {
@@ -159,11 +147,6 @@ public class RefineryControllerBlockEntity extends BlockEntity {
         return Map.copyOf(found);
     }
 
-    public void setDefinitionId(ResourceLocation definitionId) {
-        this.definitionId = definitionId;
-        setChanged();
-    }
-
     public boolean isActive() {
         return active;
     }
@@ -221,17 +204,12 @@ public class RefineryControllerBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.saveAdditional(tag, registries);
-        tag.putString("Definition", definitionId.toString());
         tag.putInt("Progress", progress);
     }
 
     @Override
     protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.loadAdditional(tag, registries);
-        ResourceLocation parsed = ResourceLocation.tryParse(tag.getString("Definition"));
-        if (parsed != null) {
-            definitionId = parsed;
-        }
         progress = tag.getInt("Progress");
     }
 

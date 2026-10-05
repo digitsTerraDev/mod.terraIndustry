@@ -1,5 +1,6 @@
 package com.digitscodecompendium.terraindustry.refinery;
 
+import com.digitscodecompendium.terraindustry.ModBlocks;
 import net.minecraft.resources.ResourceLocation;
 import java.util.Map;
 import java.util.Optional;
@@ -14,7 +15,6 @@ import java.util.List;
 /** Public Java bridge intended for KubeJS startup scripts; no KubeJS dependency is required. */
 public final class RefineryDefinitions {
     private static final Map<ResourceLocation, RefineryDefinition> DEFINITIONS = new ConcurrentHashMap<>();
-    private static volatile ResourceLocation defaultDefinition;
     public static void register(RefineryDefinition definition) { DEFINITIONS.put(definition.id(), definition); }
 
     /**
@@ -52,9 +52,6 @@ public final class RefineryDefinitions {
         return new RefineryDefinition.DailyWindow(LocalTime.parse(parts[0]), LocalTime.parse(parts[1]));
     }
     public static Optional<RefineryDefinition> find(ResourceLocation id) { return Optional.ofNullable(DEFINITIONS.get(id)); }
-    /** Assigns the definition automatically selected by newly placed/unconfigured controllers. */
-    public static void setDefault(String id) { defaultDefinition = ResourceLocation.parse(id); }
-    public static Optional<ResourceLocation> defaultId() { return Optional.ofNullable(defaultDefinition); }
     public static void clear() { DEFINITIONS.clear(); }
     private RefineryDefinitions() { }
 
@@ -65,6 +62,7 @@ public final class RefineryDefinitions {
     public static final class Builder {
         private final String id;
         private String startsAt;
+        private String controllerName;
         private final List<String> periods = new ArrayList<>();
         private int cycleTicks = 20;
         private final Map<String, List<CatalystTransformationRecipe.Outcome>> transformations = new LinkedHashMap<>();
@@ -79,6 +77,19 @@ public final class RefineryDefinitions {
 
         /** Delays operation until this ISO-8601 UTC instant. Omit this for no delayed start. */
         public Builder startsAt(String startsAt) { this.startsAt = startsAt; return this; }
+
+        /**
+         * Uses this Terra Industry block path for the controller item. Without this call, the
+         * definition id's path is used. For example, {@code controller("copper_refinery")} adds
+         * {@code terraindustry:copper_refinery} bound only to this definition.
+         */
+        public Builder controller(String controllerName) {
+            if (!ResourceLocation.isValidPath(controllerName)) {
+                throw new IllegalArgumentException("Invalid refinery controller path: " + controllerName);
+            }
+            this.controllerName = controllerName;
+            return this;
+        }
 
         /** Adds an active UTC window such as {@code "06:00-10:00"}. */
         public Builder activeBetween(String period) { periods.add(period); return this; }
@@ -141,14 +152,10 @@ public final class RefineryDefinitions {
                     Arrays.stream(configuredPeriods).map(RefineryDefinitions::parsePeriod).toList(), cycleTicks,
                     Arrays.asList(recipes), fuel, coolant, List.copyOf(crystallizations));
             RefineryDefinitions.register(definition);
+            ModBlocks.registerRefineryController(controllerName == null
+                    ? ResourceLocation.parse(id).getPath() : controllerName, definition.id());
             return definition;
         }
 
-        /** Registers this definition and makes it the default for unconfigured controllers. */
-        public RefineryDefinition registerAsDefault() {
-            RefineryDefinition definition = register();
-            setDefault(id);
-            return definition;
-        }
     }
 }

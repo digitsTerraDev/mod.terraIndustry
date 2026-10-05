@@ -14,13 +14,17 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** All refinery pieces are intentionally unbreakable; only their controller owns behaviour. */
 public final class ModBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(TerraIndustry.MODID);
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(TerraIndustry.MODID);
 
-    public static final DeferredBlock<RefineryControllerBlock> REFINERY_CONTROLLER = registerController("refinery_controller");
     public static final DeferredBlock<RefineryControllerBlock> IRON_REFINERY = registerController("iron_refinery", ResourceLocation.parse(BuiltinRefineries.IRON_REFINERY));
+    private static final List<DeferredBlock<RefineryControllerBlock>> REFINERY_CONTROLLERS = new ArrayList<>(List.of(
+            IRON_REFINERY));
     public static final DeferredBlock<RefineryPortBlock> FUEL_PORT = registerPort("fuel_port", RefineryPortType.FUEL);
     public static final DeferredBlock<RefineryPortBlock> MODIFIER_PORT = registerPort("modifier_port", RefineryPortType.MODIFIER);
     public static final DeferredBlock<RefineryPortBlock> COOLANT_PORT = registerPort("coolant_port", RefineryPortType.COOLANT);
@@ -49,6 +53,25 @@ public final class ModBlocks {
         DeferredBlock<RefineryControllerBlock> block = BLOCKS.registerBlock(name, properties -> new RefineryControllerBlock(properties, definitionId));
         ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
         return block;
+    }
+
+    /**
+     * Registers a pack-defined controller under the Terra Industry namespace. This must be called
+     * from a KubeJS startup script, before block registries are frozen.
+     */
+    public static synchronized void registerRefineryController(String name, ResourceLocation definitionId) {
+        if (!ResourceLocation.isValidPath(name)) {
+            throw new IllegalArgumentException("Invalid refinery controller path: " + name);
+        }
+        if (REFINERY_CONTROLLERS.stream().anyMatch(controller -> controller.getId().getPath().equals(name))) {
+            throw new IllegalArgumentException("A refinery controller named '" + name + "' is already registered");
+        }
+        REFINERY_CONTROLLERS.add(registerController(name, definitionId));
+    }
+
+    /** Blocks that may host a refinery controller block entity. */
+    public static synchronized List<Block> refineryControllerBlocks() {
+        return REFINERY_CONTROLLERS.stream().<Block>map(DeferredBlock::get).toList();
     }
 
     private static DeferredBlock<RefineryPortBlock> registerPort(String name, RefineryPortType type) {

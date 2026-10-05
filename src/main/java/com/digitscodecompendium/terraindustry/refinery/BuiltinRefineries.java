@@ -21,7 +21,6 @@ public final class BuiltinRefineries {
                 new CatalystCrystallizationRecipe[] {
                         new CatalystCrystallizationRecipe("minecraft:diamond_ore", "minecraft:amethyst_cluster", 0.10D)
                 });
-        RefineryDefinitions.setDefault(IRON_REFINERY);
     }
 
     private BuiltinRefineries() { }

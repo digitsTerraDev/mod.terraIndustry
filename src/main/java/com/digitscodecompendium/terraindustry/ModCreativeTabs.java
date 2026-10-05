@@ -15,10 +15,9 @@ public final class ModCreativeTabs {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TERRA_INDUSTRY =
             CREATIVE_MODE_TABS.register("terra_industry", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.terraindustry.terra_industry"))
-                    .icon(() -> new ItemStack(ModBlocks.REFINERY_CONTROLLER.get()))
+                    .icon(() -> new ItemStack(ModBlocks.IRON_REFINERY.get()))
                     .displayItems((parameters, output) -> {
-                        output.accept(ModBlocks.REFINERY_CONTROLLER.get());
-                        output.accept(ModBlocks.IRON_REFINERY.get());
+                        ModBlocks.refineryControllerBlocks().forEach(output::accept);
                         output.accept(ModBlocks.FUEL_PORT.get());
                         output.accept(ModBlocks.MODIFIER_PORT.get());
                         output.accept(ModBlocks.COOLANT_PORT.get());

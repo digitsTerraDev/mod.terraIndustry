@@ -15,7 +15,7 @@ RefineryDefinitions.refinery('yourmod:iron_refinery')
   .fuelItem('minecraft:coal', 1, 120) // item id, amount, ticks between fuel consumption
   .transform('minecraft:stone', 'minecraft:iron_ore', 0.10)
   .crystallize('minecraft:iron_ore', 'minecraft:amethyst_cluster', 0.10)
-  .registerAsDefault() // New/unconfigured controllers use this refinery.
+  .register() // Adds terraindustry:iron_refinery, bound only to this definition.
 
 // Calling transform again for the same input adds another weighted outcome.
 // The combined chance for one input must not exceed 1.0.
@@ -24,7 +24,8 @@ RefineryDefinitions.refinery('yourmod:ore_upgrader')
   .fuelFluid('minecraft:lava', 250, 200) // fluid id, millibuckets, interval in ticks
   .transform('minecraft:iron_ore', 'minecraft:gold_ore', 0.15)
   .transform('minecraft:iron_ore', 'minecraft:diamond_ore', 0.02)
-  .register()
+  .controller('ore_upgrader_controller') // Optional: choose the controller block path.
+  .register() // Adds terraindustry:ore_upgrader_controller.
 
 // Other available resource helpers:
 //   .fuelEnergy(1000, 20)

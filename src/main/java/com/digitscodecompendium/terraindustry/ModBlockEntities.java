@@ -14,7 +14,8 @@ public final class ModBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RefineryControllerBlockEntity>> REFINERY_CONTROLLER =
             BLOCK_ENTITIES.register("refinery_controller", () -> BlockEntityType.Builder.of(
-                    RefineryControllerBlockEntity::new, ModBlocks.REFINERY_CONTROLLER.get(), ModBlocks.IRON_REFINERY.get()).build(null));
+                    RefineryControllerBlockEntity::new,
+                    ModBlocks.refineryControllerBlocks().toArray(net.minecraft.world.level.block.Block[]::new)).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RefineryPortBlockEntity>> REFINERY_PORT =
             BLOCK_ENTITIES.register("refinery_port", () -> BlockEntityType.Builder.of(RefineryPortBlockEntity::new,
                     ModBlocks.FUEL_PORT.get(), ModBlocks.MODIFIER_PORT.get(), ModBlocks.COOLANT_PORT.get()).build(null));
