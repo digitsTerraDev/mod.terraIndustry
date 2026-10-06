@@ -41,6 +41,14 @@ public record BlockStateSpec(ResourceLocation blockId, Map<String, String> prope
         return properties.entrySet().stream().allMatch(entry -> matchesProperty(state, entry.getKey(), entry.getValue()));
     }
 
+    /** Human-readable script syntax, used in JEI to distinguish state-specific variants. */
+    public String asString() {
+        if (properties.isEmpty()) return blockId.toString();
+        return blockId + "[" + properties.entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(java.util.stream.Collectors.joining(",")) + "]";
+    }
+
     /** Creates the configured state, failing clearly if a script names an unavailable property or value. */
     public BlockState createState() {
         BlockState state = BuiltInRegistries.BLOCK.get(blockId).defaultBlockState();

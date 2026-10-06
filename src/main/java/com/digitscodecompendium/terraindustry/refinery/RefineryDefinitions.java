@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Comparator;
 
 /** Public Java bridge intended for KubeJS startup scripts; no KubeJS dependency is required. */
 public final class RefineryDefinitions {
@@ -52,6 +53,10 @@ public final class RefineryDefinitions {
         return new RefineryDefinition.DailyWindow(LocalTime.parse(parts[0]), LocalTime.parse(parts[1]));
     }
     public static Optional<RefineryDefinition> find(ResourceLocation id) { return Optional.ofNullable(DEFINITIONS.get(id)); }
+    /** Snapshot for client integrations such as JEI. */
+    public static List<RefineryDefinition> all() {
+        return DEFINITIONS.values().stream().sorted(Comparator.comparing(definition -> definition.id().toString())).toList();
+    }
     public static void clear() { DEFINITIONS.clear(); }
     private RefineryDefinitions() { }
 

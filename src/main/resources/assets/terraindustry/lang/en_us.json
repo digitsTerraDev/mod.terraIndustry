@@ -10,5 +10,8 @@
   "item.terraindustry.acceleration_modifier": "Acceleration Modifier",
   "item.terraindustry.sabotage_modifier": "Sabotage Modifier",
   "item.terraindustry.crystallization_modifier": "Crystallization Modifier",
-  "modifier.terraindustry.none": "None"
+  "modifier.terraindustry.none": "None",
+  "jei.terraindustry.refining": "Catalyst Refining",
+  "jei.terraindustry.refinery": "Refinery: %s",
+  "jei.terraindustry.chance": "Conversion chance: %s"
 }

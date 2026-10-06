@@ -30,6 +30,9 @@ sourceSets.main.resources {
 
 repositories {
     maven {
+        url = uri('https://maven.blamejared.com')
+    }
+    maven {
         url = uri('https://raw.githubusercontent.com/ChocoBooyy/maven/main')
     }
     exclusiveContent {
@@ -132,12 +135,10 @@ configurations {
 dependencies {
     implementation 'dev.chocoboy.cascade:cascade-neoforge:1.0.0+1.21.1'
     implementation 'maven.modrinth:p19vrgc2:LlLqATR6'
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    // JEI is optional at runtime; its API is needed only to expose refinery conversion hints.
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:19.25.0.321"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:19.25.0.321"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:19.25.0.321"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
